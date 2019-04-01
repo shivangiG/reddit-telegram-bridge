@@ -70,7 +70,7 @@ public class RedditSubscriberBot extends TelegramLongPollingBot {
 					boolean isValid = validateUnsubscribeCommand(chatId, txt);
 					if (isValid) {
 						String[] parts = txt.split(" ");
-						String subreddit = parts[1].trim().toUpperCase();
+						String subreddit = parts[1].trim();
 						unsubscribe(chatUserName, chatId, subreddit);
 					}
 				}
@@ -101,7 +101,7 @@ public class RedditSubscriberBot extends TelegramLongPollingBot {
 			postMsg(chatId, "Not subscribed to " + subreddit);
 		} else {
 			removeUserSubcription(chatUserName, subreddit);
-			postMsg(chatId, "Successfully unsubscribed from " + subreddit);
+			postMsg(chatId, "Successfully unsubscribed from " + subreddit + " 🙂");
 		}
 	}
 
@@ -145,9 +145,11 @@ public class RedditSubscriberBot extends TelegramLongPollingBot {
 	}
 
 	private void subscribe(String chatUserName, Long chatId, String subreddit, int frequency) {
-		ScheduledFuture<?> future = ResourceUtil.executor.scheduleAtFixedRate(() -> sendMessage(chatId, subreddit), 1,
-				frequency, TimeUnit.HOURS);
-		addUserSubcription(chatUserName, future, subreddit);
+		if (checkSubscriptionStatus(chatId, chatUserName, subreddit)) {
+			ScheduledFuture<?> future = ResourceUtil.executor.scheduleAtFixedRate(() -> sendMessage(chatId, subreddit), 1, frequency,
+						TimeUnit.HOURS);
+			addUserSubcription(chatUserName, future, subreddit);
+		}
 	}
 
 	private void addUserSubcription(String user, ScheduledFuture<?> future, String subreddit) {
@@ -213,6 +215,25 @@ public class RedditSubscriberBot extends TelegramLongPollingBot {
 		builder.append("*list* - to see all subscriptions\n");
 		builder.append("*status* - to check status of the bot");
 		postMsg(chatId, builder.toString());
+	}
+
+	private boolean checkSubscriptionStatus(Long chatId, String user, String subreddit) {
+		if (isUserSubscriptionExist(user, subreddit)) {
+			String msg = "Already subscribed for " + subreddit + "!";
+			postMsg(chatId, msg);
+			return false;
+		}
+		List<String> posts = RedditUtil.getTopPost(subreddit, 5);
+
+		if (posts.isEmpty()) {
+			String msg = "Either subreddit " + subreddit + " doesn't exist or inactive 🙁";
+			postMsg(chatId, msg);
+			return false;
+		} else {
+			String msg = "Successfully subscribed to subreddit " + subreddit + " 🙃";
+			postMsg(chatId, msg);
+		}
+		return true;
 	}
 
 	private void postMsg(long chatId, String reply) {
