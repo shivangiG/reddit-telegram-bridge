@@ -146,8 +146,8 @@ public class RedditSubscriberBot extends TelegramLongPollingBot {
 
 	private void subscribe(String chatUserName, Long chatId, String subreddit, int frequency) {
 		if (checkSubscriptionStatus(chatId, chatUserName, subreddit)) {
-			ScheduledFuture<?> future = ResourceUtil.executor.scheduleAtFixedRate(() -> sendMessage(chatId, subreddit), 1, frequency,
-						TimeUnit.HOURS);
+			ScheduledFuture<?> future = ResourceUtil.executor.scheduleAtFixedRate(() -> sendMessage(chatId, subreddit),
+					1, frequency, TimeUnit.HOURS);
 			addUserSubcription(chatUserName, future, subreddit);
 		}
 	}
@@ -178,11 +178,12 @@ public class RedditSubscriberBot extends TelegramLongPollingBot {
 		List<String> posts = RedditUtil.getTopPost(subreddit, 5);
 		if (!posts.isEmpty()) {
 			StringBuilder builder = new StringBuilder();
-			builder.append("Top " + subreddit + " posts : ");
-			for (int i = 1; i <= posts.size(); i++) {
-				builder.append(i + ". " + posts.get(i));
+			builder.append("*Top " + subreddit + " posts: *\n\n");
+			for (int i = 0; i < posts.size(); i++) {
+				builder.append(maskUnderscores(posts.get(i)));
+				builder.append("\n\n");
 			}
-			postMsg(chatId, builder.toString());
+			postMsg(chatId, builder.toString().trim());
 		}
 	}
 
@@ -219,18 +220,18 @@ public class RedditSubscriberBot extends TelegramLongPollingBot {
 
 	private boolean checkSubscriptionStatus(Long chatId, String user, String subreddit) {
 		if (isUserSubscriptionExist(user, subreddit)) {
-			String msg = "Already subscribed for " + subreddit + "!";
+			String msg = "Already subscribed for *" + subreddit + "*!";
 			postMsg(chatId, msg);
 			return false;
 		}
 		List<String> posts = RedditUtil.getTopPost(subreddit, 5);
 
 		if (posts.isEmpty()) {
-			String msg = "Either subreddit " + subreddit + " doesn't exist or inactive 🙁";
+			String msg = "Either subreddit *" + subreddit + "* doesn't exist or inactive 🙁";
 			postMsg(chatId, msg);
 			return false;
 		} else {
-			String msg = "Successfully subscribed to subreddit " + subreddit + " 🙃";
+			String msg = "Successfully subscribed to subreddit *" + subreddit + "* 🙃";
 			postMsg(chatId, msg);
 		}
 		return true;
@@ -244,5 +245,9 @@ public class RedditSubscriberBot extends TelegramLongPollingBot {
 		} catch (TelegramApiException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private String maskUnderscores(String url) {
+		return url.replace("_", "\\_");
 	}
 }
